@@ -1,0 +1,155 @@
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- Check if the UI already exists and remove it if it does
+if CoreGui:FindFirstChild("CheckerPanelGUI") then
+    CoreGui:FindFirstChild("CheckerPanelGUI"):Destroy()
+end
+
+-- Define Color Scheme
+local Colors = {
+    Background = Color3.fromRGB(230, 240, 255),
+    Glow = Color3.fromRGB(255, 255, 255),
+    Accent = Color3.fromRGB(160, 170, 200),
+    LightContrast = Color3.fromRGB(210, 220, 255),
+    DarkContrast = Color3.fromRGB(120, 130, 160),
+    TextColor = Color3.fromRGB(0, 0, 0)  -- Changed all text colors to black
+}
+
+-- Create ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CheckerPanelGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = CoreGui
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 360, 0, 380)  -- Increased height
+MainFrame.Position = UDim2.new(0.5, -180, 0.5, -190)  -- Adjusted position to center with increased height
+MainFrame.BackgroundColor3 = Colors.Background
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local function CreateUICorner(radius, parent)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = radius
+    corner.Parent = parent
+end
+CreateUICorner(UDim.new(0.08, 0), MainFrame)
+
+-- Custom outline color (using Accent and Glow)
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = 2.5
+UIStroke.Parent = MainFrame
+UIStroke.Color = Colors.Accent  -- Set the outline color to Accent
+UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border  -- This will make it appear as an outline
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Text = "❄️ Frostbyte | Executor Tester"
+Title.Size = UDim2.new(1, -32, 0, 35)  -- Increased text size
+Title.Position = UDim2.new(0, 10, 0, 8)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Colors.TextColor  -- Changed text color to black
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 24  -- Increased text size
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = MainFrame
+
+-- Underline
+local Line = Instance.new("Frame")
+Line.Size = UDim2.new(1, -20, 0, 1)
+Line.Position = UDim2.new(0, 10, 0, 45)  -- Adjusted position due to title size change
+Line.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+Line.BorderSizePixel = 0
+Line.Parent = MainFrame
+
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Text = "❌"
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundTransparency = 1
+CloseButton.TextColor3 = Colors.TextColor  -- Changed text color to black
+CloseButton.Font = Enum.Font.SourceSansBold
+CloseButton.TextSize = 24  -- Increased text size
+CloseButton.ZIndex = 2
+CloseButton.Parent = MainFrame
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Container
+local ButtonContainer = Instance.new("Frame")
+ButtonContainer.Size = UDim2.new(1, -20, 1, -115)  -- Increased height for the button container
+ButtonContainer.Position = UDim2.new(0, 10, 0, 50)
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.Parent = MainFrame
+
+local Layout = Instance.new("UIListLayout", ButtonContainer)
+Layout.Padding = UDim.new(0, 8)
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Script list with swapped "Level Test" and "Frostbyte Discord"
+local scripts = {
+    { name = "📌 UNC Test Official", url = "https://rawscripts.net/raw/Universal-Script-UNC-Test-13114" },
+    { name = "📌 sUNC Test", url = "https://gitlab.com/sens3/nebunu/-/raw/main/HummingBird8's_sUNC_yes_i_moved_to_gitlab_because_my_github_acc_got_brickedd/sUNCm0m3n7.lua" },
+    { name = "🍒 CET (Cherry's Environment Test)", url = "https://raw.githubusercontent.com/InfernusScripts/Executor-Tests/refs/heads/main/Environment/Test.lua" },
+    { name = "🆔 Identity Test", url = "https://raw.githubusercontent.com/InfernusScripts/Executor-Tests/main/Identity/Test.lua" },
+    { name = "📈 Level Test", url = "https://raw.githubusercontent.com/vvult/HIdentity/refs/heads/main/HIdentity" },  -- Moved
+    { name = "🔗 Frostbyte Discord", url = "https://dsc.gg/getfrostbyte", discord = true },  -- Moved
+}
+
+for _, data in ipairs(scripts) do
+    local Button = Instance.new("TextButton")
+    Button.Text = data.name
+    Button.Size = UDim2.new(1, 0, 0, 42)  -- Increased button height
+    Button.BackgroundColor3 = Colors.DarkContrast  -- Button color
+    Button.TextColor3 = Colors.TextColor  -- Changed text color to black
+    Button.Font = Enum.Font.SourceSansBold
+    Button.TextSize = 18  -- Increased text size
+    Button.Parent = ButtonContainer
+    CreateUICorner(UDim.new(0.15, 0), Button)
+
+    -- Hover animation
+    Button.MouseEnter:Connect(function()
+        TweenService:Create(Button, TweenInfo.new(0.15), { Size = UDim2.new(1.02, 0, 0, 44) }):Play()
+    end)
+    Button.MouseLeave:Connect(function()
+        TweenService:Create(Button, TweenInfo.new(0.15), { Size = UDim2.new(1, 0, 0, 42) }):Play()
+    end)
+
+    Button.MouseButton1Click:Connect(function()
+        local original = Button.Text
+        if data.discord then
+            setclipboard(data.url)
+            Button.Text = "📋 Copied!"
+        else
+            local success, result = pcall(function()
+                loadstring(game:HttpGet(data.url))()
+            end)
+            Button.Text = success and "✅ Loaded!" or "❌ Failed!"
+            if not success then warn(result) end
+        end
+
+        task.delay(1.5, function()
+            Button.Text = original
+        end)
+    end)
+end
+
+-- Watermark
+local Watermark = Instance.new("TextLabel")
+Watermark.Text = "❄️ By Frostbyte"
+Watermark.Size = UDim2.new(0, 200, 0, 20)  -- Set width for centering
+Watermark.Position = UDim2.new(0.5, -100, 1, -20)  -- Bottom middle
+Watermark.BackgroundTransparency = 1
+Watermark.TextColor3 = Colors.TextColor  -- Changed text color to black
+Watermark.Font = Enum.Font.SourceSansBold
+Watermark.TextSize = 14  -- Increased text size
+Watermark.TextXAlignment = Enum.TextXAlignment.Center
+Watermark.Parent = MainFrame
