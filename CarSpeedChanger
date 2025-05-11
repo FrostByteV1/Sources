@@ -1,0 +1,251 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local VenyxLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/Documantation12/Universal-Vehicle-Script/main/Library.lua"))()
+local Venyx = VenyxLibrary.new("❄️  Frostbyte Universal Car Tuner   ", 5013156)
+
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Theme = {
+    Background = Color3.fromRGB(230, 240, 255),
+    Glow = Color3.fromRGB(255, 255, 255),
+    Accent = Color3.fromRGB(160, 170, 200),
+    LightContrast = Color3.fromRGB(210, 220, 255),
+    DarkContrast = Color3.fromRGB(120, 130, 160),
+    TextColor = Color3.fromRGB(20, 30, 60)
+}
+
+for index, value in pairs(Theme) do
+    pcall(Venyx.setTheme, Venyx, index, value)
+end
+
+task.delay(1, function()
+    local function styleGUI(gui)
+        for _, obj in ipairs(gui:GetDescendants()) do
+            if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+                obj.Font = Enum.Font.SourceSansBold
+                obj.TextScaled = false
+                obj.TextSize = 15
+            elseif obj:IsA("Frame") and obj.Name == "MainContainer" then
+                obj.Size = UDim2.new(0, 500, 0, 340)
+                obj.Position = UDim2.new(0.5, -250, 0.5, -170)
+            end
+        end
+    end
+    if Venyx.Gui then
+        styleGUI(Venyx.Gui)
+    end
+end)
+
+local function GetVehicleFromDescendant(Descendant)
+    return Descendant:FindFirstAncestor(LocalPlayer.Name .. "'s Car")
+        or (Descendant:FindFirstAncestor("Body") and Descendant:FindFirstAncestor("Body").Parent)
+        or (Descendant:FindFirstAncestor("Misc") and Descendant:FindFirstAncestor("Misc").Parent)
+        or Descendant:FindFirstAncestorWhichIsA("Model")
+end
+
+local speedPage = Venyx:addPage(" Speed", 8356815386)
+local speedSection = speedPage:addSection("Acceleration")
+local velocityMult = 0.025
+local brakeMult = 0.15
+
+speedSection:addSlider("Acceleration", 25, 0, 50, function(v)
+    velocityMult = v / 1000
+end)
+
+local brakeSection = speedPage:addSection("Braking")
+brakeSection:addSlider("Brake Force", 150, 0, 300, function(v)
+    brakeMult = v / 1000
+end)
+
+local accelKey = Enum.KeyCode.W
+local brakeKey = Enum.KeyCode.S
+
+speedSection:addKeybind("Accelerate", accelKey, function()
+    while UserInputService:IsKeyDown(accelKey) do
+        task.wait()
+        local seat = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid").SeatPart
+        if seat and seat:IsA("VehicleSeat") then
+            seat.AssemblyLinearVelocity *= Vector3.new(1 + velocityMult, 1, 1 + velocityMult)
+        end
+    end
+end, function(k) accelKey = k.KeyCode end)
+
+brakeSection:addKeybind("Brake", brakeKey, function()
+    while UserInputService:IsKeyDown(brakeKey) do
+        task.wait()
+        local seat = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid").SeatPart
+        if seat and seat:IsA("VehicleSeat") then
+            seat.AssemblyLinearVelocity *= Vector3.new(1 - brakeMult, 1, 1 - brakeMult)
+        end
+    end
+end, function(k) brakeKey = k.KeyCode end)
+
+brakeSection:addKeybind("Hard Stop", Enum.KeyCode.P, function()
+    local seat = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid").SeatPart
+    if seat then
+        seat.AssemblyLinearVelocity = Vector3.zero
+        seat.AssemblyAngularVelocity = Vector3.zero
+    end
+end)
+
+local flyPage = Venyx:addPage(" Flight", 8357222903)
+local flySection = flyPage:addSection("Fly Mode")
+local flySpeed = 1
+local flyActive = false
+
+flySection:addToggle("Enable Fly", false, function(v)
+    flyActive = v
+end)
+
+flySection:addSlider("Fly Speed", 100, 0, 800, function(v)
+    flySpeed = v / 100
+end)
+
+local savedParent
+RunService.Stepped:Connect(function()
+    local char = LocalPlayer.Character
+    if flyActive and char then
+        local humanoid = char:FindFirstChildWhichIsA("Humanoid")
+        local seat = humanoid and humanoid.SeatPart
+        if seat and seat:IsA("VehicleSeat") then
+            local vehicle = GetVehicleFromDescendant(seat)
+            if vehicle and vehicle:IsA("Model") then
+                char.Parent = vehicle
+                if not vehicle.PrimaryPart then
+                    vehicle.PrimaryPart = seat
+                end
+                local look = workspace.CurrentCamera.CFrame.LookVector
+                local move = CFrame.new(
+                    (UserInputService:IsKeyDown(Enum.KeyCode.D) and flySpeed or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.A) and flySpeed or 0),
+                    (UserInputService:IsKeyDown(Enum.KeyCode.E) and flySpeed / 2 or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.Q) and flySpeed / 2 or 0),
+                    (UserInputService:IsKeyDown(Enum.KeyCode.S) and flySpeed or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.W) and flySpeed or 0)
+                )
+                vehicle:SetPrimaryPartCFrame(CFrame.new(vehicle.PrimaryPart.Position, vehicle.PrimaryPart.Position + look) * move)
+                seat.AssemblyLinearVelocity = Vector3.zero
+                seat.AssemblyAngularVelocity = Vector3.zero
+            end
+        end
+    else
+        if char then
+            char.Parent = savedParent or char.Parent
+            savedParent = char.Parent
+        end
+    end
+end)
+
+-- Top-Right Minimize and Close Buttons
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Text = "Minimize"
+minimizeButton.Size = UDim2.new(0, 80, 0, 30)
+minimizeButton.Position = UDim2.new(1, -180, 0, 10)
+minimizeButton.AnchorPoint = Vector2.new(0, 0)
+minimizeButton.BackgroundColor3 = Theme.Accent
+minimizeButton.TextColor3 = Theme.TextColor
+minimizeButton.Font = Enum.Font.SourceSansBold
+minimizeButton.TextSize = 15
+minimizeButton.Parent = Venyx.Gui
+
+local closeButton = Instance.new("TextButton")
+closeButton.Text = "Close"
+closeButton.Size = UDim2.new(0, 80, 0, 30)
+closeButton.Position = UDim2.new(1, -90, 0, 10)
+closeButton.AnchorPoint = Vector2.new(0, 0)
+closeButton.BackgroundColor3 = Theme.Accent
+closeButton.TextColor3 = Theme.TextColor
+closeButton.Font = Enum.Font.SourceSansBold
+closeButton.TextSize = 15
+closeButton.Parent = Venyx.Gui
+
+local minimizeText = Instance.new("TextLabel")
+minimizeText.Text = "Right Shift to Reopen UI"
+minimizeText.Size = UDim2.new(0, 200, 0, 30)
+minimizeText.Position = UDim2.new(0, 20, 1, -40)
+minimizeText.BackgroundTransparency = 1
+minimizeText.TextColor3 = Theme.TextColor
+minimizeText.TextScaled = true
+minimizeText.Font = Enum.Font.SourceSansBold
+minimizeText.TextSize = 15
+minimizeText.Visible = true
+minimizeText.Parent = game.CoreGui
+
+minimizeButton.MouseButton1Click:Connect(function()
+    Venyx:toggle()
+    minimizeText.Visible = true
+end)
+
+closeButton.MouseButton1Click:Connect(function()
+    Venyx:destroy()
+end)
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        Venyx:toggle()
+        minimizeText.Visible = false
+    end
+end)
+
+repeat task.wait() until game:IsLoaded() and game.PlaceId > 0
+local placeId = game.PlaceId
+
+if placeId == 3351674303 then
+    local wfPage = Venyx:addPage(" Wayfort", 8360925727)
+    local wfSection = wfPage:addSection("Dealerships")
+    local list = {}
+    for _, d in pairs(workspace.Game.Dealerships.Dealerships:GetChildren()) do
+        table.insert(list, d.Name)
+    end
+    wfSection:addDropdown("Select Dealership", list, function(name)
+        game.ReplicatedStorage.Remotes.Location:FireServer("Enter", name)
+    end)
+elseif placeId == 891852901 then
+    Venyx:addPage(" Greenville", 8360925727)
+elseif placeId == 54865335 then
+    Venyx:addPage(" Westover", 8360954483)
+elseif placeId == 5232896677 then
+    Venyx:addPage(" Pacifico", 3028235557)
+end
+
+local infoPage = Venyx:addPage(" Info", 8356778308)
+local discordSection = infoPage:addSection("Discord")
+discordSection:addButton(syn and "Join Discord" or "Copy Invite", function()
+    if syn then
+        syn.request({
+            Url = "http://127.0.0.1:6463/rpc?v=1",
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json", ["Origin"] = "https://dsc.gg"},
+            Body = game:GetService("HttpService"):JSONEncode({
+                cmd = "INVITE_BROWSER",
+                args = {code = "getfrostbyte"},
+                nonce = game:GetService("HttpService"):GenerateGUID(false)
+            }),
+        })
+    else
+        setclipboard("dsc.gg/getfrostbyte")
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.RightBracket then
+        Venyx:toggle()
+    end
+end)
+
+-- Your custom message that appears at the bottom-left
+local message = Instance.new("TextLabel")
+message.Text = "Your custom message here"
+message.Size = UDim2.new(0, 250, 0, 30)
+message.Position = UDim2.new(0, 20, 1, -100)  -- Adjust this position to make it appear bottom-left, not fully bottom
+message.BackgroundTransparency = 0.5
+message.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+message.TextColor3 = Color3.fromRGB(255, 255, 255)
+message.TextScaled = true
+message.Font = Enum.Font.SourceSansBold
+message.TextSize = 20
+message.Parent = game.CoreGui
+
+-- Make the message disappear after 5 seconds
+task.delay(5, function()
+    message:Destroy()
+end)
